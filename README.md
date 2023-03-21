@@ -1,9 +1,9 @@
-# \[Group name\]
+# \Philx2-nico]
 
 **Group members:**
-- A
-- B
-- C
+- Philip Gade Reumert   
+- Nicolai Møller
+- Philip Engel 
 
 This repository contains  
 1. Inaugural project. 
