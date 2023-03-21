@@ -1,6 +1,6 @@
-# \Philx2-nico]
+# \Philx2-nico
 
-**Group members:**
+Group members:
 - Philip Gade Reumert   
 - Nicolai Møller
 - Philip Engel 
