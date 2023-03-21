@@ -11,7 +11,7 @@ class HouseholdSpecializationModelClass:
 
     def __init__(self):
         """ setup model """
-        
+
         # a. create namespaces
         par = self.par = SimpleNamespace()
         sol = self.sol = SimpleNamespace()

@@ -28,7 +28,7 @@ def objective(x):
     H_F = x[3]
     C = w_M*L_M + w_F*L_F
     H = home_production(H_M, H_F, alpha, sigma)
-    Q = C**omega * H**(1-omega)
+    Q = C**omega * H**(1-omega) 
     T_M = L_M + H_M
     T_F = L_F + H_F
     return -(Q**(1-rho)/(1-rho) - nu*(T_M**(1+1/epsilon)/(1+1/epsilon) + T_F**(1+1/epsilon)/(1+1/epsilon)))
