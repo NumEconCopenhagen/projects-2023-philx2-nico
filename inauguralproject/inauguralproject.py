@@ -146,7 +146,26 @@ class HouseholdSpecializationModelClass:
         pass
 
 
-        
+
+model = HouseholdSpecializationModelClass()
+
+#a. Create list with values of alpha and sigma
+alpha_list = [0.25, 0.5, 0.75]
+sigma_list = [0.5,1.0,1.5]
+
+df = pd.DataFrame(columns = pd.Index(alpha_list, name="sigma/alpha"), index = pd.Index(sigma_list, name=""))
+
+
+for i in alpha_list:
+    for j in sigma_list:
+        model.par.alpha = i
+        model.par.sigma = j
+        results = model.solve_discrete()
+        ratio = results.HF / results.HM
+        df.loc[j,i] = f"{ratio:.2f}"
+
+print(df)
+#print(tabulate(df, headers = alpha_list, tablefmt = "fancy_grid")) 
 
 
 
