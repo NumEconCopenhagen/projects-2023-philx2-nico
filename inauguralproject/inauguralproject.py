@@ -26,10 +26,6 @@ class HouseholdSpecializationModelClass:
         # c. household production
         par.alpha = 0.5
         par.sigma = 1.0
-
-
-        alpha_values = [0.25, 0.5, 0.75]
-        sigma_values = [0.5, 1.0, 1.5]
         
         # d. wages
         par.wM = 1.0
@@ -147,6 +143,8 @@ class HouseholdSpecializationModelClass:
 
 
 
+# Question 1
+
 model = HouseholdSpecializationModelClass()
 
 #a. Create list with values of alpha and sigma
@@ -167,8 +165,46 @@ for i in alpha_list:
 print(df)
 #print(tabulate(df, headers = alpha_list, tablefmt = "fancy_grid")) 
 
+# Vi kan også overveje at tilføje et heatmap over de forskellige variationer, der 
+# kan vise hvilke variatioer med højest værdi
 
 
+
+#Question 2
+import matplotlib.pyplot as plt
+
+model2 = HouseholdSpecializationModelClass()
+
+log_H_ratio = []
+log_w_ratio = []
+
+for wF in model2.par.wF.vec:
+    wF = model2.par.wF
+    wM = model2.par.wM
+    optimum = model2.solve.discrete()
+    log_HFM = np.log(optimum.HF / optimum.HM)
+    log_H_ratio = np.append(log_H_ratio, log_HFM)
+    log_wF = np.log(wF / wM)
+    log_w_ratio = np.append(log_w_ratio , log_wF)
+
+
+
+
+
+#model = HouseholdSpecializationModelClass()
+
+#HF_HM_ratios = model.solve.wF_vec(discrete=True)
+
+#model.run_regression
+
+#plt.plot(np.log(model.par,wF_vec),np.log(HF_HM_ratios),marker = "x" , linestyle = "--")
+
+
+#for i, txt in enumerate (model.par.wF_vec):
+ #   plt.annotate(txt, (np.log(model.par.wF_vec[i]), np.log(HF_HM_ratios[i])))
+
+#plt.grid(True)
+#plt.show()
 
 
 

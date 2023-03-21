@@ -113,7 +113,7 @@ class HouseholdSpecializationModelClass:
 
     def solve_wF_vec(self,discrete=False):
         """ solve model for vector of female wages """
-
+        
         pass
 
     def run_regression(self):
