@@ -170,22 +170,60 @@ print(df)
 
 
 
-#Question 2
-import matplotlib.pyplot as plt
 
-model2 = HouseholdSpecializationModelClass()
 
-log_H_ratio = []
-log_w_ratio = []
+# Question 2 Ny
 
-for wF in model2.par.wF.vec:
-    wF = model2.par.wF
-    wM = model2.par.wM
-    optimum = model2.solve.discrete()
-    log_HFM = np.log(optimum.HF / optimum.HM)
-    log_H_ratio = np.append(log_H_ratio, log_HFM)
-    log_wF = np.log(wF / wM)
-    log_w_ratio = np.append(log_w_ratio , log_wF)
+model = HouseholdSpecializationModelClass()
+
+alpha_list = [0.25, 0.5, 0.75]
+sigma_list = [0.5, 1.0, 1.5]
+wF_list = [0.8, 0.9, 1.0, 1.1, 1.2]
+
+results_list = []
+
+for alpha in alpha_list:
+    for sigma in sigma_list:
+        for wF in wF_list:
+            results = solve_and_plot(model, alpha, sigma, wF)
+            results_list.append((alpha, sigma, *results))
+
+# Plot the results
+markers = ['o', '^', 's', 'd', 'x']
+styles = ['-', '--', '-.', ':']
+for i, alpha in enumerate(alpha_list):
+    for j, sigma in enumerate(sigma_list):
+        mask = [(r[0]==alpha) and (r[1]==sigma) for r in results_list]
+        wF_arr, ratio_arr = zip(*[r[2:] for r in np.array(results_list)[mask]])
+        plt.plot(np.log(np.array(wF_arr)/model.par.wM), ratio_arr, marker=markers[j], linestyle=styles[i], label=f'$\\alpha={alpha}$, $\\sigma={sigma}$')
+
+plt.xlabel('$\\log\\frac{w_F}{w_M}$')
+plt.ylabel('$\\log\\frac{H_F}{H_M}$')
+plt.title('Household Specialization Model')
+
+# Create a separate legend outside of the plot area
+plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+
+plt.show()
+
+
+
+#Question 2 OLD version # virkede ikke
+#import matplotlib.pyplot as plt
+
+#model2 = HouseholdSpecializationModelClass()
+
+#log_H_ratio = []
+#log_w_ratio = []
+
+#for wF in model2.par.wF.vec:
+ #   wF = model2.par.wF
+  #  wM = model2.par.wM
+   # optimum = model2.solve.discrete()
+    #log_HFM = np.log(optimum.HF / optimum.HM)
+    #log_H_ratio = np.append(log_H_ratio, log_HFM)
+    #log_wF = np.log(wF / wM)
+    #log_w_ratio = np.append(log_w_ratio , log_wF)
 
 
 
