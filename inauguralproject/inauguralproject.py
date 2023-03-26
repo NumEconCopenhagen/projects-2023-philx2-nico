@@ -1,9 +1,9 @@
-
 from types import SimpleNamespace
 
 import numpy as np
 from scipy import optimize
 
+from tabulate import tabulate
 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -117,37 +117,110 @@ class HouseholdSpecializationModelClass:
         return opt
 
     def solve(self,do_print=False):
-        """ solve model continously """
+        """ solve model continuously """
+        
+        par = self.par
+        sol = self.sol
+        opt = SimpleNamespace()
 
-        pass    
+        # Define the utility function to be maximized
+        def utility(x, *args):
+            LM, HM, LF, HF = x
+            return -self.calc_utility(LM, HM, LF, HF)
+    
+        # Define the constraints
+        def constraint(x, *args):
+            LM, HM, LF, HF = x
+            return np.array([24 - (LM + HM), 24 - (LF + HF)])
+    
+        # Set the initial guess
+        x0 = np.array([12, 12, 12, 12])
+        
+        # Use the minimize function to maximize the utility subject to the constraints
+        res = optimize.minimize(utility, x0, method='SLSQP', constraints={'type': 'ineq', 'fun': constraint})
+        
+        # Get the maximizing argument
+        LM, HM, LF, HF = res.x
+        
+        # Save the solution
+        sol.LM = LM
+        sol.HM = HM
+        sol.LF = LF
+        sol.HF = HF
+        
+        # Print the solution
+        if do_print:
+            for k,v in sol.__dict__.items():
+                print(f'{k} = {v:6.4f}')
 
-    def solve_wF_vec(self,discrete=False):
-        """ solve model for vector of female wages """
+        return sol
+
+
+        def solve_wF_vec(self,discrete=False):
+            """ solve model for vector of female wages """
 
         pass
 
     def run_regression(self):
-        """ run regression """
+        # Define alpha, sigma, and wF values
+        alpha_list = [0.25, 0.5, 0.75]
+        sigma_list = [0.5, 1.0, 1.5]
+        wF_list = [0.8, 0.9, 1.0, 1.1, 1.2]
 
-        par = self.par
-        sol = self.sol
+        # Create an empty dictionary to store results
+        results_dict = {}
 
-        x = np.log(par.wF_vec)
-        y = np.log(sol.HF_vec/sol.HM_vec)
-        A = np.vstack([np.ones(x.size),x]).T
-        sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
+        # Loop over all combinations of alpha, sigma, and wF
+        for alpha in alpha_list:
+            for sigma in sigma_list:
+                for wF in wF_list:
+                    # Set parameter values
+                    self.par.alpha = alpha
+                    self.par.sigma = sigma
+                    self.par.wF = wF
+
+                    # Solve the model
+                    sol = self.solve()
+
+                    # Calculate log ratios
+                    log_HF_HM = np.log(sol.HF / sol.HM)
+                    log_wF_wM = np.log(self.par.wF / self.par.wM)
+
+                    # Store results in dictionary
+                    if (alpha, sigma) not in results_dict:
+                        results_dict[(alpha, sigma)] = []
+                    results_dict[(alpha, sigma)].append((wF, log_HF_HM, log_wF_wM))
+
+        # Initialize table
+        table = []
+        headers = ["Alpha", "Sigma", "Beta0", "Beta1", "SSE"]
+
+        # Perform regression for each combination of alpha and sigma
+        for alpha in alpha_list:
+            for sigma in sigma_list:
+                # Initialize arrays for regression
+                X = np.empty((0,))
+                Y = np.empty((0,))
+
+                # Fill arrays with data
+                for wF, log_HF_HM, log_wF_wM in results_dict[(alpha, sigma)]:
+                    X = np.append(X, log_wF_wM)
+                    Y = np.append(Y, log_HF_HM)
+
+                # Perform linear regression
+                A = np.vstack([np.ones(X.size), X]).T
+                beta, sse, _, _ = np.linalg.lstsq(A, Y, rcond=None)
+
+                # Add regression results to table
+                row = [alpha, sigma, beta[0], beta[1], sse]
+                table.append(row)
+
+        # Format and return table
+        return tabulate(table, headers=headers, floatfmt=".4f", tablefmt="fancy_grid")
+
+
     
     def estimate(self,alpha=None,sigma=None):
         """ estimate alpha and sigma """
 
         pass
-
-
-
-# Question 1
-
-#print(tabulate(df, headers = alpha_list, tablefmt = "fancy_grid")) 
-
-# Vi kan også overveje at tilføje et heatmap over de forskellige variationer, der 
-# kan vise hvilke variatioer med højest værdi
-
