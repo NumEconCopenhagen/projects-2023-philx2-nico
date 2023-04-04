@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import numpy as np
 from scipy import optimize
-
 from tabulate import tabulate
 
 import pandas as pd 
@@ -116,20 +115,20 @@ class HouseholdSpecializationModelClass:
 
         return opt
 
-    def solve(self,do_print=False):
+    def solve(self, do_print=False):
         """ solve model continuously """
         
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
 
-        # Define the utility function to be maximized
-        def utility(x, *args):
+        # Define the objective function to be maximized
+        def objective(x):
             LM, HM, LF, HF = x
             return -self.calc_utility(LM, HM, LF, HF)
     
         # Define the constraints
-        def constraint(x, *args):
+        def constraint(x):
             LM, HM, LF, HF = x
             return np.array([24 - (LM + HM), 24 - (LF + HF)])
     
@@ -137,7 +136,7 @@ class HouseholdSpecializationModelClass:
         x0 = np.array([12, 12, 12, 12])
         
         # Use the minimize function to maximize the utility subject to the constraints
-        res = optimize.minimize(utility, x0, method='SLSQP', constraints={'type': 'ineq', 'fun': constraint})
+        res = optimize.minimize(objective, x0, method='trust-constr', constraints={'type': 'ineq', 'fun': constraint})
         
         # Get the maximizing argument
         LM, HM, LF, HF = res.x
@@ -193,7 +192,7 @@ class HouseholdSpecializationModelClass:
 
         # Initialize table
         table = []
-        headers = ["Alpha", "Sigma", "Beta0", "Beta1", "SSE"]
+
 
         # Perform regression for each combination of alpha and sigma
         for alpha in alpha_list:
@@ -215,8 +214,13 @@ class HouseholdSpecializationModelClass:
                 row = [alpha, sigma, beta[0], beta[1], sse]
                 table.append(row)
 
+                df1 = pd.DataFrame(table, columns=["Alpha", "Sigma", "Beta0", "Beta1", "SSE"])
+
+                # Format floating-point numbers in DataFrame
+                df1 = df1.round({"Alpha": 2, "Sigma": 1, "Beta0": 4, "Beta1": 4, "SSE": 4})
+
         # Format and return table
-        return tabulate(table, headers=headers, floatfmt=".4f", tablefmt="fancy_grid")
+        return df1
 
 
     
