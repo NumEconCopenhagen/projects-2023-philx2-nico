@@ -94,6 +94,7 @@ class NyboligScraper:
             "size_2": sizes_2
         }
         df = pd.DataFrame(data)
+        df = df[df['price'] >= 500000]  # Filter out rows with price below 500000
 
         # Export the DataFrame to an Excel file
         if file_name is None:
@@ -104,3 +105,24 @@ class NyboligScraper:
         else:
                 file_name = f'{file_name}.csv'
         df.to_csv(file_name, index=False)
+
+class NyboligAnalysis:
+    def __init__(self, file_name):
+        self.data = pd.read_csv(file_name)
+
+    def descriptive_statistics(self, column_name):
+        column = self.data[column_name]
+        stats = {
+            'count': column.count(),
+            'mean': column.mean(),
+            'std': column.std(),
+            'min': column.min(),
+            '25%': column.quantile(0.25),
+            '50%': column.quantile(0.5),
+            '75%': column.quantile(0.75),
+            'max': column.max()
+        }
+        return pd.DataFrame(stats, index=[column_name])
+
+
+
