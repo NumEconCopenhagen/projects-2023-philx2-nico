@@ -102,8 +102,5 @@ class NyboligScraper:
             else:
                 file_name = f'scraped_data_{property_type}.csv'
         else:
-            if property_type is None:
-                file_name = f'scraped_data_{file_name}.csv'
-            else:
-                file_name = f'scraped_data_{property_type}_{file_name}.csv'
+                file_name = f'{file_name}.csv'
         df.to_csv(file_name, index=False)
