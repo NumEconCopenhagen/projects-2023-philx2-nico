@@ -199,12 +199,19 @@ class NyboligAnalysis:
         ax.set_ylabel(y.name)
         ax.set_title(f'Regression of {y.name} on {X.columns[0]}')
         plt.show()
-    #Remove outliers from the dataset based on the given column and standard error threshold
-    def remove_outliers(self, column_name, threshold):
+    
+    # Remove outliers from the dataset based on the given column and minimum number of observations per city
+    def remove_outliers(self, column_name, min_city_observations, threshold):
+        # Get the counts of observations per city
+        city_counts = self.data.groupby('city').size().reset_index(name='counts')
+        # Remove cities with less than min_city_observations observations
+        cities_to_remove = city_counts[city_counts['counts'] < min_city_observations]['city']
+        self.data = self.data[~self.data['city'].isin(cities_to_remove)]
         # Calculate the z-score of the data
         z_scores = (self.data[column_name] - self.data[column_name].mean()) / self.data[column_name].std()
         # Remove outliers above the threshold
         self.data = self.data[z_scores <= threshold]
+
     #Function to find the minimum and maximum average property prices by postcode
     def min_max_postcode(self, data=None):
         if data is None:
