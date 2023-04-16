@@ -8,7 +8,7 @@ import re
 
 class NyboligScraper:
 
-    #postcode cleaning
+    #Function to parse the postal code from address
     def parse_postal_code(self, address):
         full_address = address.strip()
         postal_code_pattern = r'\b\d{4}\b'
@@ -21,7 +21,7 @@ class NyboligScraper:
             postal_code = None
 
         return postal_code
-
+    #get the number of pages for the given property type
     def get_pages(self, property_type=None):
         if property_type is None:
             url = 'https://www.nybolig.dk/til-salg'
@@ -34,7 +34,7 @@ class NyboligScraper:
         pages = tree.xpath('//span[@class="total-pages-text"]/text()')[0]
         print(f'Total number of pages: {pages}')
 
-    #address cleaning
+    # Function to parse city from address
     def parse_city_name(self,data):
         for i in range(len(data) - 1):
             if len(data) > 2 and isinstance(data[i], str) and len(data[i]) >= 4:
@@ -42,7 +42,7 @@ class NyboligScraper:
                     if data[i][j:j+4].isdigit():
                         return " ".join(data[i+1:]) 
         return None
-
+    #scraper
     def scrape_data_nybolig(self, num_pages, property_type=None, file_name=None):
         addresses = []
         postcodes = []
@@ -58,19 +58,20 @@ class NyboligScraper:
         else:
             url = f'https://www.nybolig.dk/til-salg/{property_type}'
 
+        #Iterate through each page to scrape property data
         for page in range(1, num_pages + 1):
             page_url = f'{url}?page={page}'
             response = requests.get(page_url)
 
             tree = html.fromstring(response.content)
             tiles = tree.xpath('//div[@class="tile__info"]')
-
+            #Iterate through each property and extract relevant data
             for tile in tiles:
                 address = tile.xpath('.//p[@class="tile__address"]/text()')
                 price = tile.xpath('.//p[@class="tile__price"]/text()')
                 mix = tile.xpath('.//p[@class="tile__mix"]/text()')
 
-                # Address cleaning
+                #Address parsing
                 if address:
                     full_address = address[0].strip()
                     addresses.append(full_address)
@@ -83,14 +84,14 @@ class NyboligScraper:
                     postcodes.append(None)
                     cities.append(None)
 
-                # Price cleaning
+                # Price parsing
                 if price:
                     cleaned_price = ''.join(filter(str.isdigit, price[0]))
                     prices.append(int(cleaned_price))
                 else:
                     prices.append(None)
 
-                # Mix cleaning
+                # Mixed parsing
                 if mix:
                     cleaned_mix = ' '.join(mix[0].split())
                     mix_parts = cleaned_mix.split(' | ')
@@ -110,7 +111,7 @@ class NyboligScraper:
                     rooms.append(None)
                     sizes_1.append(None)
                     sizes_2.append(None)
-
+        #DataFrame with the scraped data
         data = {
             "address": addresses,
             "postcode": postcodes,
@@ -122,9 +123,9 @@ class NyboligScraper:
             "size_2": sizes_2
         }
         df = pd.DataFrame(data)
-        df = df[df['price'] >= 500000]  # Filter out rows with price below 500000
+        df = df[df['price'] >= 500000] #Filter out rows with price below 500000
 
-        # Export the DataFrame to an Excel file
+        #Export the DataFrame to an Excel file
         if file_name is None:
             if property_type is None:
                 file_name = f'scraped_data.csv'
@@ -134,7 +135,7 @@ class NyboligScraper:
                 file_name = f'{file_name}.csv'
 
 
-    #Address cleaning again
+    #City parsing again (Function to update city name if it is missing)
         def update_city(row):
             address = row['address']
             address_components = address.split()
@@ -156,7 +157,8 @@ class NyboligScraper:
 class NyboligAnalysis:
     def __init__(self, file_name):
         self.data = pd.read_csv(file_name)
-        #self.data = file_name
+    #Calculate descriptive statistics for a given column
+
     def descriptive_statistics(self, column_name):
         column = self.data[column_name]
         stats = {
@@ -170,7 +172,7 @@ class NyboligAnalysis:
             'max': column.max()
         }
         return pd.DataFrame(stats, index=[column_name])
-    
+    #OLS regression
     def OLS(self, X, y):
         # Add a constant to the independent variables
         X = sm.add_constant(X)
@@ -197,13 +199,13 @@ class NyboligAnalysis:
         ax.set_ylabel(y.name)
         ax.set_title(f'Regression of {y.name} on {X.columns[0]}')
         plt.show()
-
+    #Remove outliers from the dataset based on the given column and standard error threshold
     def remove_outliers(self, column_name, threshold):
         # Calculate the z-score of the data
         z_scores = (self.data[column_name] - self.data[column_name].mean()) / self.data[column_name].std()
         # Remove outliers above the threshold
         self.data = self.data[z_scores <= threshold]
-
+    #Function to find the minimum and maximum average property prices by postcode
     def min_max_postcode(self, data=None):
         if data is None:
             data = self.data
