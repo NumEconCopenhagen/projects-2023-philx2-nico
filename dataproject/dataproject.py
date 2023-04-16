@@ -204,22 +204,19 @@ class NyboligAnalysis:
         # Remove outliers above the threshold
         self.data = self.data[z_scores <= threshold]
 
-    def group_mean(self, var1, var2):
-        grouped = self.data.groupby(var2)[var1].mean()
-        return pd.DataFrame(grouped)
-    
-    def min_max_prices(self):
-        # Group the data by postcode and calculate the mean price
-        mean_prices_by_postcode = self.group_mean('price', 'postcode')
+    def min_max_postcode(self, data=None):
+        if data is None:
+            data = self.data
+        mean_prices_by_postcode = data.groupby('postcode')['price'].mean()
+        min_postcode = mean_prices_by_postcode.idxmin()
+        min_price = mean_prices_by_postcode.loc[min_postcode]
+        min_city = data[data['postcode'] == min_postcode]['city'].iloc[0]
+        max_postcode = mean_prices_by_postcode.idxmax()
+        max_price = mean_prices_by_postcode.loc[max_postcode]
+        max_city = data[data['postcode'] == max_postcode]['city'].iloc[0]
+        return (min_price, min_postcode, min_city), (max_price, max_postcode, max_city)
 
-        # Get the minimum and maximum price and their corresponding postcodes
-        min_price = mean_prices_by_postcode['price'].min()
-        max_price = mean_prices_by_postcode['price'].max()
-        min_postcode = mean_prices_by_postcode.loc[mean_prices_by_postcode['price'].idxmin(), 'postcode']
-        max_postcode = mean_prices_by_postcode.loc[mean_prices_by_postcode['price'].idxmax(), 'postcode']
 
-        return min_price, max_price, min_postcode, max_postcode
-    
 
 
 
