@@ -18,5 +18,9 @@ def solve_ss(alpha, c):
 
     #. b. call root finder to find kss.
     result = optimize.root_scalar(obj,bracket=[0.1,100],method='bisect')
-    
+       # a. Objective function, depends on k (endogenous) and c (exogenous).
+    f = lambda k: k**alpha - c
+    obj = lambda kss: kss - f(kss)   # a. Objective function, depends on k (endogenous) and c (exogenous).
+    f = lambda k: k**alpha - c
+    obj = lambda kss: kss - f(kss)
     return result
