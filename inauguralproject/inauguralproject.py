@@ -7,6 +7,11 @@ from tabulate import tabulate
 import pandas as pd 
 import matplotlib.pyplot as plt
 
+from scipy.optimize import minimize
+from sklearn.linear_model import LinearRegression
+
+import types
+
 class HouseholdSpecializationModelClass:
 
     def __init__(self):
@@ -47,35 +52,35 @@ class HouseholdSpecializationModelClass:
 
 
     def calc_utility(self,LM,HM,LF,HF):
-        """ calculate utility """
+       """ calculate utility """
+    
+       par = self.par
+       sol = self.sol
+    
+       # a. consumption of market goods
+       C = par.wM*LM + par.wF*LF
+    
+       # b. home production
+       if par.sigma == 1.0:
+           H = HM**(1-par.alpha)*HF**par.alpha
+       elif par.sigma == 0:
+           H = np.minimum(HM, HF)
+       else: 
+           with np.errstate(all='ignore'):
+               H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma) + par.alpha*HF**((par.sigma-1)/par.sigma))**(par.sigma/(par.sigma-1))
+    
+       # c. total consumption utility
+       Q = C**par.omega*H**(1-par.omega)
+       utility = np.fmax(Q,1e-8)**(1-par.rho)/(1-par.rho)
+    
+       # d. disutlity of work
+       epsilon_ = 1+1/par.epsilon
+       TM = LM+HM
+       TF = LF+HF
+       disutility = par.nu*(TM**epsilon_/epsilon_+TF**epsilon_/epsilon_)
+       
+       return utility - disutility
 
-        par = self.par
-        sol = self.sol
-
-        # a. consumption of market goods
-        C = par.wM*LM + par.wF*LF
-
-        # b. home production
-        H = HM**(1-par.alpha)*HF**par.alpha
-        if par.sigma == 1:
-            H = HM**(1-par.alpha)*HF**par.alpha
-        elif par.sigma == 0:
-            H = np.minimum(HM,HF)
-        else: 
-            with np.errstate(all='ignore'):
-                H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma) + par.alpha*HF**((par.sigma-1)/par.sigma))**(par.sigma/(par.sigma-1))
-
-        # c. total consumption utility
-        Q = C**par.omega*H**(1-par.omega)
-        utility = np.fmax(Q,1e-8)**(1-par.rho)/(1-par.rho)
-
-        # d. disutlity of work
-        epsilon_ = 1+1/par.epsilon
-        TM = LM+HM
-        TF = LF+HF
-        disutility = par.nu*(TM**epsilon_/epsilon_+TF**epsilon_/epsilon_)
-        
-        return utility - disutility
 
     def solve_discrete(self,do_print=False):
         """ solve model discretely """
@@ -155,10 +160,46 @@ class HouseholdSpecializationModelClass:
         return sol
 
 
-        def solve_wF_vec(self,discrete=False):
-            """ solve model for vector of female wages """
+    def solve_wF_vec(self, discrete=False):
+        """ solve model for vector of female wages """
 
-        pass
+        par = self.par
+        sol = self.sol
+
+        # Calculate log ratios for each wF
+        log_ratios = []
+        for wF in par.wF_vec:
+            par.wF = wF
+            results = self.solve(discrete)
+            log_ratios.append(np.log(results.HF / results.HM))
+
+        # Fit a linear regression
+        X = np.log(np.array(par.wF_vec) / par.wM).reshape(-1, 1)
+        y = np.array(log_ratios)
+        lin_reg = LinearRegression().fit(X, y)
+
+        # Save the estimated coefficients
+        sol.beta0 = lin_reg.intercept_
+        sol.beta1 = lin_reg.coef_[0]
+
+    def minimize_squared_differences(model, alpha_sigma, discrete=False):
+        """ minimize the squared differences between the estimated and target coefficients """
+
+        par = model.par
+        sol = model.sol
+
+        # Set the new alpha and sigma values
+        par.alpha = alpha_sigma[0]
+        par.sigma = alpha_sigma[1]
+
+        # Solve the model for the given alpha and sigma values
+        model.solve_wF_vec(discrete)
+
+        # Calculate the squared differences
+        squared_diff = (sol.beta0 - par.beta0_target)**2 + (sol.beta1 - par.beta1_target)**2
+
+        return squared_diff
+
 
     def run_regression(self):
         # Define alpha, sigma, and wF values
@@ -223,8 +264,47 @@ class HouseholdSpecializationModelClass:
         return df1
 
 
-    
-    def estimate(self,alpha=None,sigma=None):
-        """ estimate alpha and sigma """
+    def sum_of_squared_diffs(self, params, beta0_target, beta1_target):
+        alpha, sigma = params
+        self.par.alpha = alpha
+        self.par.sigma = sigma
+        df1 = self.run_regression()
 
-        pass
+        beta0_hat = df1.loc[df1["Alpha"] == alpha, "Beta0"].values[0]
+        beta1_hat = df1.loc[df1["Alpha"] == alpha, "Beta1"].values[0]
+
+        return (beta0_target - beta0_hat) ** 2 + (beta1_target - beta1_hat) ** 2
+
+    def estimate(self, alpha=None, sigma=None):
+        # Set target coefficients
+        beta0_target = 0.4
+        beta1_target = -0.1
+
+        # Optimize the function
+        initial_guess = [0.5, 1.0]
+        bounds = [(0.4, 0.6), (0.5, 1.5)]  # Assuming a narrow interval for alpha and sigma
+        result = minimize(self.sum_of_squared_diffs, initial_guess, args=(beta0_target, beta1_target), bounds=bounds)
+
+        # Print best-fit alpha and sigma values
+        best_alpha, best_sigma = result.x
+        print(f"Best-fit alpha: {best_alpha:.4f}, Best-fit sigma: {best_sigma:.4f}")
+
+        return best_alpha, best_sigma
+    
+#    def __init__(self):
+        # Set up the parameters
+        self.par = types.SimpleNamespace(alpha=0.5, gamma=1.0, wF_vec=np.linspace(0.5, 2.0, 50), wM=1.0)
+        self.sol = {}
+
+ #   def solve_wF_vec(self):
+        alpha = self.par.alpha
+        gamma = self.par.gamma
+        wF_vec = self.par.wF_vec
+        wM = self.par.wM
+        
+        # Calculate the household production
+        self.sol['HF_vec'] = wF_vec**alpha * wM**(1-alpha)
+        self.sol['HM_vec'] = wF_vec**(1-alpha) * wM**alpha
+        
+        # Calculate the specialization
+        self.sol['specialization'] = self.sol['HF_vec']**gamma + self.sol['HM_vec']**gamma
