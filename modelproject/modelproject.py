@@ -1,22 +1,46 @@
 from scipy import optimize
+import numpy as np
+import sympy as sm
+from sympy.solvers import solve
+from sympy import Symbol
+import matplotlib.pyplot as plt
+from types import SimpleNamespace
+from tabulate import tabulate
+import ipywidgets as widgets
+from ipywidgets import interact, interactive, fixed, interact_manual
 
-def solve_ss(alpha, c):
-    """ Example function. Solve for steady state k. 
+#Defining class
+class SolowModelClass(): 
+    """ Creating the model """
 
-    Args:
-        c (float): costs
-        alpha (float): parameter
+        def __init__(self, do_print=True):
+        """ initializing the model """
 
-    Returns:
-        result (RootResults): the solution represented as a RootResults object.
+        self.par = SimpleNamespace()
+        self.val = SimpleNamespace()
+        self.sim = SimpleNamespace()
 
-    """ 
-    
-    # a. Objective function, depends on k (endogenous) and c (exogenous).
-    f = lambda k: k**alpha - c
-    obj = lambda kss: kss - f(kss)
+        if do_print:
+        print('calling .setup()')
 
-    #. b. call root finder to find kss.
-    result = optimize.root_scalar(obj,bracket=[0.1,100],method='bisect')
-      
-    return result
+        self.setup()
+
+
+    def setup(self):
+        """ baseline parameters """
+
+        val = self.val
+        par = self.par
+        sim = self.sim
+
+        #Model parameters for analytical solution
+        par.k = sm.symbols('k')
+        par.alpha = sm.symbols('alpha')
+        par.delta = sm.symbols('delta')
+        par.sigma =  sm.symbols('sigma')
+        par.s = sm.symbols('s')
+        par.g = sm.symbols('g')
+        par.n = sm.symbols('n')
+        par.li = sm.symbols('li') #native workers
+        par.lm = sm.symbols('li') #immigrant workers
+        par.kss = sm.symbols(r'$\tilde k_t$')
