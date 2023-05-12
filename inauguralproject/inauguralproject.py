@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 
 import types
 
-# 2. Define the HouseholdSpecializationModelClass
+# 2. Defining the HouseholdSpecializationModelClass
 
 class HouseholdSpecializationModelClass:
     # 2.1. Initialization and parameter setting
