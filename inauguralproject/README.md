@@ -7,15 +7,15 @@ To succesfully run this file it is reguired to run the [inauguralproject.py](ina
 
 **Dependencies**: In order to effectively execute the code, the specific dependencies must be installed. 
 
-numpy
+    - numpy
 
-scipy
+    - scipy
 
-pandas
+    - pandas
 
-matplotlib
+    - matplotlib
 
-seaborn
+    - seaborn
 
 
 Please ensure these dependencies are installed in your Python environment to enable the flawless running of the code.
