@@ -1,7 +1,17 @@
 # Inaugural project
 
-We are sorry in advance if it is unstructered / uncomplete. You need to run the .py file and run all in .ipynb then you should see the results. It may take a few seconds. We appreciate your input. 
+This project is made by Philip Gade Reumert, Philip Engel and Nicolai Møller.
 
-The **results** of the project can be seen from running [inauguralproject.ipynb](inauguralproject.ipynb).
+The outcome of this project can be observed by from running our [inauguralproject.ipynb] file. 
+To succesfully run this file it is reguired to run the [inauguralproject.py] file.
 
-**Dependencies:** Apart from a standard Anaconda Python 3 installation, the project requires no further packages.
+**Dependencies**: In order to effectively execute the code, the specific dependencies must be installed. 
+
+numpy
+scipy
+pandas
+matplotlib
+seaborn
+
+Please ensure these dependencies are installed in your Python environment to enable the flawless running of the code.
+
