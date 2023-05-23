@@ -1,3 +1,10 @@
+import pandas as pd
+import re
+from collections import defaultdict
+from pathlib import Path
+import csv
+from lxml import html
+import requests
 import requests
 from lxml import html
 import pandas as pd
@@ -6,22 +13,30 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import re
 
-class NyboligScraper:
+class HouseListingsScraper(object):
+    def __init__(self,base_url:str,property_type:str,page_num:int):
+        self.base_url = base_url
+        self.current_page = self.base_url[12:].split(".")[0]
+        self.property_type = "/" + property_type if property_type else ""
+        self.page_num = f"?page={page_num}" if page_num else ""
+        self.url = self.base_url + self.property_type + self.page_num
+        print(self.url)
+        self._response = None
+        self.session = requests.Session()
 
-    #Function to parse the postal code from address
-    def parse_postal_code(self, address):
-        full_address = address.strip()
-        postal_code_pattern = r'\b\d{4}\b'
-        postal_code_match = re.search(postal_code_pattern, full_address)
+    def response(self):
+        if self._response is None:
+            r = self.session.get(self.url)
+            r.raise_for_status()
+            self._response = html.fromstring(r.text)
+        return self._response
+    
+    def get_element(self,xpath):
+        return self.response().xpath(xpath)
 
-        if postal_code_match:
-            postal_code = postal_code_match.group()
-            full_address = full_address.replace(postal_code, '').strip()
-        else:
-            postal_code = None
+    def parse_listings(self):
+        return self.get_element("//div[@class='tile__info']")
 
-        return postal_code
-    #get the number of pages for the given property type
     def get_pages(self, property_type=None):
         if property_type is None:
             url = 'https://www.nybolig.dk/til-salg'
@@ -34,125 +49,170 @@ class NyboligScraper:
         pages = tree.xpath('//span[@class="total-pages-text"]/text()')[0]
         print(f'Total number of pages: {pages}')
 
-    # Function to parse city from address
+
+class NyBoligParser(object):
+    def __init__(self,scraped_data):
+        self.scraped_data = scraped_data
+        # print(self.scraped_data)
+        self.unparsed = list()
+        self.listing_data_dict = defaultdict(list)
+        
+    def parse_listings(self):
+        for index,element in enumerate(self.scraped_data):
+            ele = element.getchildren()
+            items = [ele[0].text.strip(),ele[1].text.strip(),ele[2].text.strip()]
+            self.parse_listing_elements(items)
+            self.unparsed.append(items)
+
+        self.raw_data
+
+
+    def raw_data(self):
+        # Sanity Check
+        #print(self.unparsed)
+
+        # Basic file name
+        filename = 'raw_output.csv'
+        # Open the file in write mode and specify newline='' to prevent extra blank lines
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(self.unparsed)
+
+    def parse_listing_elements(self, listing):
+        item, price, details = listing
+        self.append_location_data(item)
+        cleaned_price = ''.join(filter(str.isdigit, price))
+        price = int(cleaned_price)
+        self.listing_data_dict['price'].append(price)
+        self.append_structural_data(details)
+
+
     def parse_city_name(self,data):
+        #Some cities have multiple words in the name (e.g. lolland falster). Some listings also do not have postal code.
+        # It loops through each element ensuring that we remove the postal code of the city name and saves everything after the postal code as the city name
+        # We also ensure that we dont get floor name (some addresses have floor name and orientation) 
         for i in range(len(data) - 1):
             if len(data) > 2 and isinstance(data[i], str) and len(data[i]) >= 4:
                 for j in range(len(data[i]) - 3):
                     if data[i][j:j+4].isdigit():
-                        return " ".join(data[i+1:]) 
+                        return " ".join(data[i+1:])
+
         return None
-    #scraper
-    def scrape_data_nybolig(self, num_pages, property_type=None, file_name=None):
-        addresses = []
-        postcodes = []
-        cities = []
-        prices = []
-        types = []
-        rooms = []
-        sizes_1 = []
-        sizes_2 = []
 
-        if property_type is None:
-            url = 'https://www.nybolig.dk/til-salg'
+    def parse_postal_code(self, address):
+        #use strip to remove white space
+        full_address = address.strip()
+        #use regex to find postal code pattern (4 numbers in a row that follows Danish postal code conventions)
+        postal_code_pattern = r'\b\d{4}\b'
+        postal_code_match = re.search(postal_code_pattern, full_address)
+        #if postal_code_match is true we define the postal code. (some listings do not contain postal code)
+        if postal_code_match:
+            postal_code = postal_code_match.group()
         else:
-            url = f'https://www.nybolig.dk/til-salg/{property_type}'
+            postal_code = None
 
-        #Iterate through each page to scrape property data
-        for page in range(1, num_pages + 1):
-            page_url = f'{url}?page={page}'
-            response = requests.get(page_url)
+        return postal_code
 
-            tree = html.fromstring(response.content)
-            tiles = tree.xpath('//div[@class="tile__info"]')
-            #Iterate through each property and extract relevant data
-            for tile in tiles:
-                address = tile.xpath('.//p[@class="tile__address"]/text()')
-                price = tile.xpath('.//p[@class="tile__price"]/text()')
-                mix = tile.xpath('.//p[@class="tile__mix"]/text()')
-
-                #Address parsing
-                if address:
-                    full_address = address[0].strip()
-                    addresses.append(full_address)
-                    city_parts = full_address.split(', ')[-1].split(' ')
-                    postcodes.append(self.parse_postal_code(full_address))
-                    #cities.append(' '.join(city_parts[1:]) if len(city_parts) > 1 else None)
-                    cities.append(self.parse_city_name(full_address.split(",")[-1].split()))
-                else:
-                    addresses.append(None)
-                    postcodes.append(None)
-                    cities.append(None)
-
-                # Price parsing
-                if price:
-                    cleaned_price = ''.join(filter(str.isdigit, price[0]))
-                    prices.append(int(cleaned_price))
-                else:
-                    prices.append(None)
-
-                # Mixed parsing
-                if mix:
-                    cleaned_mix = ' '.join(mix[0].split())
-                    mix_parts = cleaned_mix.split(' | ')
-
-                    types.append(mix_parts[0] if len(mix_parts) > 0 else None)
-                    rooms.append(int(mix_parts[1].split()[0]) if len(mix_parts) > 1 else None)
-
-                    if len(mix_parts) > 2:
-                        size_parts = mix_parts[2].split()[0].split('/')
-                        sizes_1.append(int(size_parts[0]) if len(size_parts) > 0 else None)
-                        sizes_2.append(int(size_parts[1]) if len(size_parts) > 1 else None)
-                    else:
-                        sizes_1.append(None)
-                        sizes_2.append(None)
-                else:
-                    types.append(None)
-                    rooms.append(None)
-                    sizes_1.append(None)
-                    sizes_2.append(None)
-        #DataFrame with the scraped data
+    def append_location_data(self,full_address):
+        #we define a temporary dictionary to hold data
         data = {
-            "address": addresses,
-            "postcode": postcodes,
-            "city": cities,
-            "price": prices,
-            "type": types,
-            "rooms": rooms,
-            "size_1": sizes_1,
-            "size_2": sizes_2
+            "full_address": full_address,
+            "postal_code": self.parse_postal_code(full_address),
+            #We split location data by ',' to get postal code and city. We then split it again by spaces to get city. 
+            "city": self.parse_city_name(full_address.split(",")[-1].split())
         }
-        df = pd.DataFrame(data)
-        df = df[df['price'] >= 500000] #Filter out rows with price below 500000
+        #the line below uses the update function to add information to the dictionary as we iterate over the listings. 
+        self.listing_data_dict.update({key: self.listing_data_dict.get(key, []) + [data[key]] for key in data})
 
-        #Export the DataFrame to an csv file
-        if file_name is None:
-            if property_type is None:
-                file_name = f'scraped_data.csv'
-            else:
-                file_name = f'scraped_data_{property_type}.csv'
-        else:
-                file_name = f'{file_name}.csv'
+    def append_structural_data(self, item):
+        data = item.split()
+        sq_m, sq_m2 = None, None
+        #relavant data always has length larger than 5
+        # we check for each listing if there is a basement by checking for "/"
+        #if there is a basement we populate sq_m2 representing the value for basement square meter
+        #lastly, we convert the output to integer
+        if len(data) > 5:
+            try:
+                if "/" in data[5]:
+                    sq_m = int(data[5].split("/")[0])
+                    sq_m2 = int(data[5].split("/")[1])
+                else:
+                    sq_m = int(data[5])
+                    sq_m2 = None
+            except ValueError:
+
+                sq_m, sq_m2 = None, None
+        #some listings do not have a room number
+        #like before we use a try and except method for setting the rooms variable. 
+        rooms = None
+        try:
+            rooms = int(data[2])
+        except ValueError:
+            rooms = None
 
 
-    #City parsing again (Function to update city name if it is missing)
-        def update_city(row):
-            address = row['address']
-            address_components = address.split()
-            if not any(char.isdigit() for char in address_components[0]) and not any(char.isdigit() for char in address_components[-1]):
-                for component in address_components[1:-1]:
-                    if any(char.isdigit() for char in component) and address_components[-1].istitle():
-                        for index, item in enumerate(reversed(address_components)):
-                            if any(char.isdigit() for char in item):
-                                start_index = len(address_components) - index
-                                end_index = len(address_components)
-                                my_string = ' '.join(address_components[start_index:end_index])
-                                return my_string
-            return row['city']
+        self.listing_data_dict.update({k: self.listing_data_dict.get(k, []) + [v] for k, v in {
+            "type": data[0], 
+            "rooms": rooms, 
+            "sq_m": sq_m, 
+            "sq_m_cellar": sq_m2
+        }.items()})
 
-        df.loc[df['city'].isnull(), 'city'] = df[df['city'].isnull()].apply(update_city, axis=1)
-        df.to_csv(file_name, index=False)
+
+    def data_to_df(self):
+        self.df = pd.DataFrame.from_dict(self.listing_data_dict)
+        self.df[self.df['price'] >= 500000]
+        self.df.loc[self.df['city'].isnull(), 'city'] = self.df[self.df['city'].isnull()].apply(self.update_city, axis=1)
+        return self.df
+
+    def update_city(self,row):
+        address = row['full_address']
+        address_components = address.split()
+        if not any(char.isdigit() for char in address_components[0]) and not any(char.isdigit() for char in address_components[-1]):
+            for component in address_components[1:-1]:
+                if any(char.isdigit() for char in component) and address_components[-1].istitle():
+                    for index, item in enumerate(reversed(address_components)):
+                        if any(char.isdigit() for char in item):
+                            start_index = len(address_components) - index
+                            end_index = len(address_components)
+                            my_string = ' '.join(address_components[start_index:end_index])
+                            return my_string
+        return row['city']
+
+    def save_dataframe_to_csv(self, df):
+        """Save a Pandas DataFrame to a CSV file.
     
+        Args:
+            df (pandas.DataFrame): A Pandas DataFrame.
+    
+        Returns:
+            None
+        """
+        file_path = "output.csv"
+        df.to_csv(file_path, index=None)
+    
+    def main(self,ind):
+        self.parse_listings()
+        self.save_dataframe_to_file(ind,self.data_to_df())
+
+def scrape_page(property_type,page_num):
+    # Create a scraper for the given page
+    scraper = HouseListingsScraper("https://www.nybolig.dk/til-salg", property_type=property_type, page_num=page_num)
+    # Scrape listings data from the page
+    return scraper.parse_listings()
+
+def main():
+
+    lst = []
+
+    for i in range(1,10):
+        parser = NyBoligParser(scrape_page("sommerhus",i))
+        parser.parse_listings()
+        lst.append(parser.data_to_df())
+
+    df = pd.concat(lst)
+
+    df.to_csv('output2.csv', index=False)
 
 class NyboligAnalysis:
     def __init__(self, file_name):
@@ -216,16 +276,11 @@ class NyboligAnalysis:
     def min_max_postcode(self, data=None):
         if data is None:
             data = self.data
-        mean_prices_by_postcode = data.groupby('postcode')['price'].mean()
+        mean_prices_by_postcode = data.groupby('postal_code')['price'].mean()
         min_postcode = mean_prices_by_postcode.idxmin()
         min_price = mean_prices_by_postcode.loc[min_postcode]
-        min_city = data[data['postcode'] == min_postcode]['city'].iloc[0]
+        min_city = data[data['postal_code'] == min_postcode]['city'].iloc[0]
         max_postcode = mean_prices_by_postcode.idxmax()
         max_price = mean_prices_by_postcode.loc[max_postcode]
-        max_city = data[data['postcode'] == max_postcode]['city'].iloc[0]
+        max_city = data[data['postal_code'] == max_postcode]['city'].iloc[0]
         return (min_price, min_postcode, min_city), (max_price, max_postcode, max_city)
-
-
-
-
-
