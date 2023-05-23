@@ -37,6 +37,18 @@ class HouseListingsScraper(object):
     def parse_listings(self):
         return self.get_element("//div[@class='tile__info']")
 
+    def get_pages(self, property_type=None):
+        if property_type is None:
+            url = 'https://www.nybolig.dk/til-salg'
+        else:
+            url = f'https://www.nybolig.dk/til-salg/{property_type}'
+
+        response = requests.get(url)
+        tree = html.fromstring(response.content)
+
+        pages = tree.xpath('//span[@class="total-pages-text"]/text()')[0]
+        print(f'Total number of pages: {pages}')
+
 
 class NyBoligParser(object):
     def __init__(self,scraped_data):
@@ -168,26 +180,18 @@ class NyBoligParser(object):
                             return my_string
         return row['city']
 
-    def save_dataframe_to_file(self,n, df):
-        """Save a Pandas DataFrame to a file.
-
+    def save_dataframe_to_csv(self, df):
+        """Save a Pandas DataFrame to a CSV file.
+    
         Args:
-            n (int): An integer argument.
             df (pandas.DataFrame): A Pandas DataFrame.
-
+    
         Returns:
             None
         """
-        # file_path = "../data/output.parquet"
         file_path = "output.csv"
-        if n == 1:
-            df.to_csv(file_path, index=None)
-        else:
-            file = Path(file_path)
-            existing_df = pd.read_parquet(file) if file.exists() else pd.DataFrame()
-            combined_df = pd.concat([existing_df, df])
-            combined_df.to_csv(file_path, index=None)
-
+        df.to_csv(file_path, index=None)
+    
     def main(self,ind):
         self.parse_listings()
         self.save_dataframe_to_file(ind,self.data_to_df())
