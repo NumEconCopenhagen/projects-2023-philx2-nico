@@ -125,7 +125,7 @@ class NyboligScraper:
         df = pd.DataFrame(data)
         df = df[df['price'] >= 500000] #Filter out rows with price below 500000
 
-        #Export the DataFrame to an Excel file
+        #Export the DataFrame to an csv file
         if file_name is None:
             if property_type is None:
                 file_name = f'scraped_data.csv'
