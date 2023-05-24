@@ -13,15 +13,14 @@ For the purpose of this analysis, the data has been cleaned and preprocessed to 
 
 **Dependencies**: In order to effectively execute the code, the specific dependencies must be installed:
 
-    - numpy
-    - scipy
-    - pandas
-    - matplotlib
-    - seaborn
-    - re
-    - requests
-    - statsmodels
-
+- numpy
+- scipy
+- pandas
+- matplotlib
+- seaborn
+- re
+- requests
+- statsmodels
 
 Please ensure these dependencies are installed in your Python environment to enable the flawless running of the code.
 
