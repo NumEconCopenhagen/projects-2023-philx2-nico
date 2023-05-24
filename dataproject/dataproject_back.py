@@ -272,17 +272,15 @@ class NyboligAnalysis:
         # Remove outliers above the threshold
         self.data = self.data[z_scores <= threshold]
 
-    def remove_small_cities(self, min_observations=10):
-        # Filter out cities with less than min_observations
-        self.data = self.data.groupby('city').filter(lambda x: len(x) >= min_observations)
-
     #Function to find the minimum and maximum average property prices by postcode
-    def min_max_city(self, data=None):
+    def min_max_postcode(self, data=None):
         if data is None:
             data = self.data
-        mean_prices_by_city = data.groupby('city')['price'].mean()
-        min_city = mean_prices_by_city.idxmin()
-        min_price = mean_prices_by_city.loc[min_city]
-        max_city = mean_prices_by_city.idxmax()
-        max_price = mean_prices_by_city.loc[max_city]
-        return (min_price, min_city), (max_price, max_city)
+        mean_prices_by_postcode = data.groupby('postal_code')['price'].mean()
+        min_postcode = mean_prices_by_postcode.idxmin()
+        min_price = mean_prices_by_postcode.loc[min_postcode]
+        min_city = data[data['postal_code'] == min_postcode]['city'].iloc[0]
+        max_postcode = mean_prices_by_postcode.idxmax()
+        max_price = mean_prices_by_postcode.loc[max_postcode]
+        max_city = data[data['postal_code'] == max_postcode]['city'].iloc[0]
+        return (min_price, min_postcode, min_city), (max_price, max_postcode, max_city)
