@@ -4,7 +4,7 @@ Our model project analyze the **Solow Model with Immigrant Workers**, an extensi
 
 The **results** of our project can be viewed by running [modelproject.ipynb](modelproject.ipynb).
 
-To succesfully run this file it is reguired to run the modelproject.py](modelproject.py) file.
+To succesfully run this file it is reguired to run the [modelproject.py](modelproject.py) file.
 
 **Dependencies**: To execute the code, certain dependencies must be installed:
 
