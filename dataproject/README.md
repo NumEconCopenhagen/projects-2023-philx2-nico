@@ -11,22 +11,15 @@ The data for this assignment has been collected from real estate database, Nybol
 For the purpose of this analysis, the data has been cleaned and preprocessed to handle any missing or inconsistent data.
 
 
-**Dependencies**: In order to effectively execute the code, the specific dependencies must be installed. 
+**Dependencies**: In order to effectively execute the code, the specific dependencies must be installed:
 
     - numpy
-
     - scipy
-
     - pandas
-
     - matplotlib
-
     - seaborn
-    
     - re
-
     - requests
-
     - statsmodels
 
 

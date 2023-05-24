@@ -7,16 +7,12 @@ The outcome of this project can be observed by from running our [inauguralprojec
 
 To succesfully run this file it is reguired to run the [inauguralproject.py](inauguralproject.py) file.
 
-**Dependencies**: In order to effectively execute the code, the specific dependencies must be installed. 
+**Dependencies**: In order to effectively execute the code, the specific dependencies must be installed:
 
     - numpy
-
     - scipy
-
     - pandas
-
     - matplotlib
-
     - seaborn
 
 
