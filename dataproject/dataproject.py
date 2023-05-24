@@ -276,7 +276,7 @@ class NyboligAnalysis:
         # Filter out cities with less than min_observations
         self.data = self.data.groupby('city').filter(lambda x: len(x) >= min_observations)
 
-    #Function to find the minimum and maximum average property prices by postcode
+    #Function to find the minimum and maximum average property prices by city
     def min_max_city(self, data=None):
         if data is None:
             data = self.data
