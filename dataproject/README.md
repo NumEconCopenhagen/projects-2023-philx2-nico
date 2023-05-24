@@ -1,6 +1,6 @@
 # Data analysis project
 
-Our project is titled **Investation of house prices on cottage**. This project explores the influence of location, property size and room count on house prices. It analyses these these variables in cities with the highest and lowest average prices, examining whether adjustments for property size and location impacts the cost differences. The ultimate goal in this project is to identify key trends and relationships affecting housing prices on cottage.
+Our project is an **investigation of house prices on cottage**. This project explores the influence of location, property size and room count on house prices. It analyses these these variables in cities with the highest and lowest average prices, examining whether adjustments for property size and location impacts the cost differences. The ultimate goal in this project is to identify key trends and relationships affecting housing prices on cottage.
 
 The **results** of the project can be seen from running [dataproject.ipynb](dataproject.ipynb).
 
