@@ -1,4 +1,4 @@
-# \Philx2-nico
+# Philx2-nico
 
 Group members:
 - Philip Gade Reumert   
