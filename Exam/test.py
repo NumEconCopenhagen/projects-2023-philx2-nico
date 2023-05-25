@@ -1,21 +1,7 @@
-from scipy import optimize
-import numpy as np
-import sympy as sm
-from sympy.solvers import solve
-from sympy import Symbol
-import matplotlib.pyplot as plt
 from types import SimpleNamespace
-from tabulate import tabulate
-import ipywidgets as widgets
-from ipywidgets import interact, interactive, fixed, interact_manual
-from types import SimpleNamespace
-from scipy import optimize
-import numpy as np
 import sympy as sm
-from sympy import *
 
-
-class government:
+class LaborEconomicsModelClass:
     def __init__(self):
         """ create the model """
         self.par = SimpleNamespace()
