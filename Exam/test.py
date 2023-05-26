@@ -52,7 +52,7 @@ class LaborEconomicsModelClass:
         print("FOC: ", FOC)
 
 class NewLaborEconomicsModelClass:
-    def __init__(self):
+    def __init__(self, sigma=1.001, rho=1.001, epsilon=1.0):
         """ create the model """
         self.par = SimpleNamespace()
 
@@ -68,6 +68,11 @@ class NewLaborEconomicsModelClass:
         self.par.sigma = sm.symbols('sigma')
         self.par.rho = sm.symbols('rho')
         self.par.epsilon = sm.symbols('epsilon')
+
+        # Assign the parameters
+        self.par.sigma = sigma
+        self.par.rho = rho
+        self.par.epsilon = epsilon
 
     def solve_model_symbolically(self, G_value):
         """ function that solves the model symbolically """
