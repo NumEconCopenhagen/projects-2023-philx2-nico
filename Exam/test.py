@@ -5,108 +5,104 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
 
+import numpy as np
+from scipy.optimize import minimize, root
+import sympy as sm
+from types import SimpleNamespace
+
 class LaborEconomicsModelClass:
-    def __init__(self):
-        """ create the model """
+    def __init__(self, alpha=0.5, kappa=1.0, nu=1/(2*16**2), w=1.0):
+        # Numeric constants
+        self.alpha = alpha
+        self.kappa = kappa
+        self.nu = nu
+        self.w = w
+
+        # Symbolic parameters
         self.par = SimpleNamespace()
+        self.val = SimpleNamespace()
 
         # Define symbols for the model parameters
-        self.par.alpha = sm.symbols('alpha')
-        self.par.kappa = sm.symbols('kappa')
-        self.par.nu = sm.symbols('nu')
-        self.par.tau = sm.symbols('tau')
-        self.par.w = sm.symbols('w')
-        self.par.L = sm.symbols('L')
-        self.par.G = sm.symbols('G')
-        self.par.w_tilde = sm.symbols('wtilde')
+        self.par.alpha, self.par.kappa, self.par.nu, self.par.tau, self.par.w, self.par.L, self.par.G, self.par.w_tilde = sm.symbols('alpha kappa nu tau w L G wtilde')
+
+        # Initialize numeric parameters with default values
+        self.val.alpha = self.alpha
+        self.val.kappa = self.kappa
+        self.val.nu = self.nu
+        self.val.tau = 0.3
+        self.val.w = self.w
+
+    def utility(self, L, tau, G, sigma, rho, epsilon):
+        C = self.kappa + (1 - tau)*self.w*L
+        U = ((self.alpha * C**((sigma-1)/sigma) + (1-self.alpha) * G**((sigma-1)/sigma))**(sigma/(sigma-1)))**(1-rho)/(1-rho) - self.nu * L**(1+epsilon) / (1+epsilon)
+        return -U
+
+    def utility_new(self, L, G_value, sigma, rho, epsilon):
+        """ function that returns the updated utility """
+        C = self.kappa + (1 - self.val.tau) * self.w * L
+        U = ((self.val.alpha * C**((sigma-1)/sigma) + (1-self.val.alpha) * G_value**((sigma-1)/sigma))**(sigma/(sigma-1)))**(1-rho)/(1-rho) - self.val.nu * L**(1+epsilon) / (1+epsilon)
+        return U
+    
+    def G_condition(self, G, tau, L):
+        return G - tau * self.w * L
+
+    def solve_model_numerically(self, parameters_sets):
+        results = []
+        for i, (sigma, rho, epsilon) in enumerate(parameters_sets, 1):
+            max_utility = -np.inf
+            optimal_tau = None
+            optimal_L = None
+            optimal_G = None
+            for tau in np.linspace(0, 1, 100):
+                G = 1
+                result_L = minimize(self.utility, x0=1, args=(tau, G, sigma, rho, epsilon), bounds=[(0, 24)])
+                if result_L.success:
+                    L_star = result_L.x[0]
+                    result_G = root(self.G_condition, x0=1, args=(tau, L_star))
+                    if result_G.success:
+                        G_star = result_G.x[0]
+                        U = -self.utility(L_star, tau, G_star, sigma, rho, epsilon)
+                        if U > max_utility:
+                            max_utility = U
+                            optimal_tau = tau
+                            optimal_L = L_star
+                            optimal_G = G_star
+            results.append({'Set': i, 'Parameters': (sigma, rho, epsilon), 'Optimal tau': optimal_tau, 'Optimal L': optimal_L, 'Optimal G': optimal_G})
+        return results
+
+    def utility_function(self, L, G_value):
+        utility = sm.log((self.par.kappa + self.par.w_tilde*L)**self.par.alpha*G_value**(1-self.par.alpha)) - self.par.nu*(L**2)/2
+        return utility
 
     def solve_model_symbolically(self, G_value):
-        """ function that solves the model symbolically """
-        # Define the utility function
-        utility = sm.log((self.par.kappa + self.par.w_tilde*self.par.L)**self.par.alpha*self.par.G**(1-self.par.alpha)) - self.par.nu*(self.par.L**2)/2
-        
-        # Substitute G with its value
-        utility_subs_G = utility.subs(self.par.G, G_value)
-        
-        # Take derivative of utility with respect to L
-        FOC = sm.diff(utility_subs_G, self.par.L)
-        
-        # Solve for optimal L
+        utility = self.utility_function(self.par.L, G_value)
+        FOC = sm.diff(utility, self.par.L)
         L_star = sm.solve(FOC, self.par.L)[0]
-        
-        # Return the solution for L as a symbolic expression
         return L_star
 
     def print_FOC(self, G_value):
-        """ function that prints the first order condition """
-        # Define the utility function
-        utility = sm.log((self.par.kappa + self.par.w_tilde*self.par.L)**self.par.alpha*self.par.G**(1-self.par.alpha)) - self.par.nu*(self.par.L**2)/2
-        
-        # Substitute G with its value
-        utility_subs_G = utility.subs(self.par.G, G_value)
-        
-        # Take derivative of utility with respect to L
-        FOC = sm.diff(utility_subs_G, self.par.L)
-        
-        # Print the FOC in symbolic form
+        utility = self.utility_function(self.par.L, G_value)
+        FOC = sm.diff(utility, self.par.L)
         print("FOC: ", FOC)
 
-class NewLaborEconomicsModelClass:
-    def __init__(self, sigma=1.001, rho=1.001, epsilon=1.0):
-        """ create the model """
-        self.par = SimpleNamespace()
-
-        # Define symbols for the model parameters
-        self.par.alpha = sm.symbols('alpha')
-        self.par.kappa = sm.symbols('kappa')
-        self.par.nu = sm.symbols('nu')
-        self.par.tau = sm.symbols('tau')
-        self.par.w = sm.symbols('w')
-        self.par.L = sm.symbols('L')
-        self.par.G = sm.symbols('G')
-        self.par.w_tilde = sm.symbols('wtilde')
-        self.par.sigma = sm.symbols('sigma')
-        self.par.rho = sm.symbols('rho')
-        self.par.epsilon = sm.symbols('epsilon')
-
-        # Assign the parameters
-        self.par.sigma = sigma
-        self.par.rho = rho
-        self.par.epsilon = epsilon
-
-    def solve_model_symbolically(self, G_value):
-        """ function that solves the model symbolically """
-        # Define the utility function
-        utility = ((self.par.alpha*(self.par.kappa + self.par.w_tilde*self.par.L)**((self.par.sigma - 1)/self.par.sigma) + 
-                (1 - self.par.alpha)*self.par.G**((self.par.sigma - 1)/self.par.sigma))**(self.par.sigma/(self.par.sigma - 1))**(1 - self.par.rho) - 1)/(1 - self.par.rho) - \
-                self.par.nu*(self.par.L**(1 + self.par.epsilon))/(1 + self.par.epsilon)    
-        
-        # Substitute G with its value
-        utility_subs_G = utility.subs(self.par.G, G_value)
-        
-        # Take derivative of utility with respect to L
-        FOC = sm.diff(utility_subs_G, self.par.L)
-        
-        # Solve for optimal L
-        L_star = sm.solve(FOC, self.par.L)[0]
-        
-        # Return the solution for L as a symbolic expression
-        return L_star
-
-    def print_FOC(self, G_value):
-        """ function that prints the first order condition """
-        # Define the utility function
-        utility = sm.log((self.par.kappa + self.par.w_tilde*self.par.L)**self.par.alpha*self.par.G**(1-self.par.alpha)) - self.par.nu*(self.par.L**2)/2
-        
-        # Substitute G with its value
-        utility_subs_G = utility.subs(self.par.G, G_value)
-        
-        # Take derivative of utility with respect to L
-        FOC = sm.diff(utility_subs_G, self.par.L)
-        
-        # Print the FOC in symbolic form
-        print("FOC: ", FOC)
-
+    def L_star(self, tilde_w):
+        return (-self.kappa + np.sqrt(self.kappa**2 + 4 * self.alpha / self.nu * tilde_w**2)) / (2 * tilde_w)
+    
+    def G(self, tau):
+        tilde_w = (1 - tau) * self.w
+        L = self.L_star(tilde_w)
+        return tau * self.w * L
+    
+    def V(self, tau):
+        tilde_w = (1 - tau) * self.w
+        L = self.L_star(tilde_w)
+        C = self.kappa + tilde_w * L
+        return np.log(C**self.alpha * self.G(tau)**(1-self.alpha)) - self.nu * L**2 / 2
+    
+    def neg_utility_new(self, L, G_value, sigma, rho, epsilon, tau):
+        C = self.kappa + (1 - tau) * self.w * L
+        U = ((self.alpha * C**((sigma-1)/sigma) + (1-self.alpha) * G_value**((sigma-1)/sigma))**(sigma/(sigma-1)))**(1-rho)/(1-rho) - self.nu * L**(1+epsilon) / (1+epsilon)
+        return -U
 class HairSalonOptimizer:
     def __init__(self, rho, iota, sigma_epsilon, R, eta, w, K, T):
         self.rho = rho
