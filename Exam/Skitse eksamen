@@ -1,33 +1,39 @@
+from scipy.optimize import minimize, root
 import numpy as np
 
-# Set the parameters
-rho = 0.9
-iota = 0.01
-sigma_epsilon = 0.1
-R = (1+0.01)**(1/12)
-eta = 0.5
-w = 1
-K = 10000
-T = 120
-np.random.seed(123)
+# Define your parameters
+alpha = 0.5
+kappa = 1.0
+nu = 1/(2*16**2)
+w = 1.0
+tau = 0.3
+parameters_sets = [(1.001, 1.001, 1.0), (1.5, 1.5, 1.0)]
 
-def calculate_H():
-    total_value = 0
+# Define utility function
+def utility(L, w, tau, G, alpha, kappa, nu, sigma, rho, epsilon):
+    C = kappa + (1 - tau)*w*L
+    U = ((alpha * C**((sigma-1)/sigma) + (1-alpha) * G**((sigma-1)/sigma))**(sigma/(sigma-1)))**(1-rho)/(1-rho) - nu * L**(1+epsilon) / (1+epsilon)
+    return -U  # We return negative utility because scipy's minimize function minimizes the function
+
+# Define G condition function
+def G_condition(G, w, tau, L):
+    return G - tau * w * L
+
+# Iterate over each set of parameters
+for sigma, rho, epsilon in parameters_sets:
+    # Initial guess for G
+    G = 1
     
-    for k in range(K):
-        epsilon = np.random.normal(loc=-0.5*sigma_epsilon**2, scale=sigma_epsilon, size=T)
-        kappa = np.empty(T)
-        kappa[0] = np.exp(rho*np.log(1) + epsilon[0])
-        
-        for t in range(1, T):
-            kappa[t] = np.exp(rho*np.log(kappa[t-1]) + epsilon[t])
-        
-        l = ((1-eta)*kappa/w)**(1/eta)
-        h = np.sum([(kappa[t]*l[t]**(1-eta) - w*l[t] - iota*(l[t] != l[t-1]))*R**(-t) for t in range(T)])
-        total_value += h
-    
-    return total_value / K
+    # First step: solve the worker problem for a given G and tau
+    result = minimize(utility, x0=1, args=(w, tau, G, alpha, kappa, nu, sigma, rho, epsilon), bounds=[(0, 24)])
+    if result.success:
+        L_star = result.x[0]
+        print('Set:', (sigma, rho, epsilon))
+        print('Optimal labor supply L*:', f'{L_star:.2f}')
 
-H = calculate_H()
+        # Second step: find the correct G based on the condition
+        result_G = root(G_condition, x0=1, args=(w, tau, L_star))
+        G_star = result_G.x[0]
+        print('Optimal G:', f'{G_star:.2f}')
+    print()
 
-print(f"The value of the salon H is {H}.")
