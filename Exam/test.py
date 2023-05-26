@@ -51,6 +51,58 @@ class LaborEconomicsModelClass:
         # Print the FOC in symbolic form
         print("FOC: ", FOC)
 
+class NewLaborEconomicsModelClass:
+    def __init__(self):
+        """ create the model """
+        self.par = SimpleNamespace()
+
+        # Define symbols for the model parameters
+        self.par.alpha = sm.symbols('alpha')
+        self.par.kappa = sm.symbols('kappa')
+        self.par.nu = sm.symbols('nu')
+        self.par.tau = sm.symbols('tau')
+        self.par.w = sm.symbols('w')
+        self.par.L = sm.symbols('L')
+        self.par.G = sm.symbols('G')
+        self.par.w_tilde = sm.symbols('wtilde')
+        self.par.sigma = sm.symbols('sigma')
+        self.par.rho = sm.symbols('rho')
+        self.par.epsilon = sm.symbols('epsilon')
+
+    def solve_model_symbolically(self, G_value):
+        """ function that solves the model symbolically """
+        # Define the utility function
+        utility = ((self.par.alpha*(self.par.kappa + self.par.w_tilde*self.par.L)**((self.par.sigma - 1)/self.par.sigma) + 
+                (1 - self.par.alpha)*self.par.G**((self.par.sigma - 1)/self.par.sigma))**(self.par.sigma/(self.par.sigma - 1))**(1 - self.par.rho) - 1)/(1 - self.par.rho) - \
+                self.par.nu*(self.par.L**(1 + self.par.epsilon))/(1 + self.par.epsilon)    
+        
+        # Substitute G with its value
+        utility_subs_G = utility.subs(self.par.G, G_value)
+        
+        # Take derivative of utility with respect to L
+        FOC = sm.diff(utility_subs_G, self.par.L)
+        
+        # Solve for optimal L
+        L_star = sm.solve(FOC, self.par.L)[0]
+        
+        # Return the solution for L as a symbolic expression
+        return L_star
+
+    def print_FOC(self, G_value):
+        """ function that prints the first order condition """
+        # Define the utility function
+        utility = sm.log((self.par.kappa + self.par.w_tilde*self.par.L)**self.par.alpha*self.par.G**(1-self.par.alpha)) - self.par.nu*(self.par.L**2)/2
+        
+        # Substitute G with its value
+        utility_subs_G = utility.subs(self.par.G, G_value)
+        
+        # Take derivative of utility with respect to L
+        FOC = sm.diff(utility_subs_G, self.par.L)
+        
+        # Print the FOC in symbolic form
+        print("FOC: ", FOC)
+
+
 class Griewank:
     def __init__(self):
         pass
@@ -91,3 +143,5 @@ class RefinedGlobalOptimizer:
             if self.objective_function.evaluate(x_star) < self.tolerance: #3.G
                 break
         return x_star
+    
+
