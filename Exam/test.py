@@ -103,6 +103,7 @@ class LaborEconomicsModelClass:
         C = self.kappa + (1 - tau) * self.w * L
         U = ((self.alpha * C**((sigma-1)/sigma) + (1-self.alpha) * G_value**((sigma-1)/sigma))**(sigma/(sigma-1)))**(1-rho)/(1-rho) - self.nu * L**(1+epsilon) / (1+epsilon)
         return -U
+        
 class HairSalonOptimizer:
     def __init__(self, rho, iota, sigma_epsilon, R, eta, w, K, T):
         self.rho = rho
