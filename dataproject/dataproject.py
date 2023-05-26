@@ -53,7 +53,6 @@ class HouseListingsScraper(object):
 class NyBoligParser(object):
     def __init__(self,scraped_data):
         self.scraped_data = scraped_data
-        # print(self.scraped_data)
         self.unparsed = list()
         self.listing_data_dict = defaultdict(list)
         
@@ -88,9 +87,9 @@ class NyBoligParser(object):
 
 
     def parse_city_name(self,data):
-        #Some cities have multiple words in the name (e.g. lolland falster). Some listings also do not have postal code.
-        # It loops through each element ensuring that we remove the postal code of the city name and saves everything after the postal code as the city name
-        # We also ensure that we dont get floor name (some addresses have floor name and orientation) 
+        # Some cities have multiple words in the name (e.g. lolland falster). Some listings also do not have postal code
+        # It loops through each element to make sure that we remove the postal code of the city name and saves everything after the postal code as the city name
+        # We also ensure that we dont get floor name (because some addresses have floor name and orientation) 
         for i in range(len(data) - 1):
             if len(data) > 2 and isinstance(data[i], str) and len(data[i]) >= 4:
                 for j in range(len(data[i]) - 3):
@@ -100,12 +99,12 @@ class NyBoligParser(object):
         return None
 
     def parse_postal_code(self, address):
-        #use strip to remove white space
+        # Use strip to remove white space
         full_address = address.strip()
-        #use regex to find postal code pattern (4 numbers in a row that follows Danish postal code conventions)
+        # Use regex to find postal code pattern (4 numbers in a row that follows Danish postal code conventions)
         postal_code_pattern = r'\b\d{4}\b'
         postal_code_match = re.search(postal_code_pattern, full_address)
-        #if postal_code_match is true we define the postal code. (some listings do not contain postal code)
+        # If postal_code_match is true we define the postal code. (some listings do not contain postal code)
         if postal_code_match:
             postal_code = postal_code_match.group()
         else:
@@ -114,11 +113,11 @@ class NyBoligParser(object):
         return postal_code
 
     def append_location_data(self,full_address):
-        #we define a temporary dictionary to hold data
+        # We define a temporary dictionary to hold data
         data = {
             "full_address": full_address,
             "postal_code": self.parse_postal_code(full_address),
-            #We split location data by ',' to get postal code and city. We then split it again by spaces to get city. 
+            # We split location data by ',' to get postal code and city. We then split it again by spaces to get city. 
             "city": self.parse_city_name(full_address.split(",")[-1].split())
         }
         #the line below uses the update function to add information to the dictionary as we iterate over the listings. 
@@ -127,10 +126,10 @@ class NyBoligParser(object):
     def append_structural_data(self, item):
         data = item.split()
         sq_m, sq_m2 = None, None
-        #relavant data always has length larger than 5
-        # we check for each listing if there is a basement by checking for "/"
-        #if there is a basement we populate sq_m2 representing the value for basement square meter
-        #lastly, we convert the output to integer
+        # Relavant data always has length larger than 5
+        # We check for each listing if there is a basement by checking for "/"
+        # If there is a basement we populate sq_m2 representing the value for basement square meter
+        # Lastly, we convert the output to integer
         if len(data) > 5:
             try:
                 if "/" in data[5]:
@@ -142,8 +141,8 @@ class NyBoligParser(object):
             except ValueError:
 
                 sq_m, sq_m2 = None, None
-        #some listings do not have a room number
-        #like before we use a try and except method for setting the rooms variable. 
+        # Some listings do not have a room number
+        # Like before we use a try and except method for setting the rooms variable. 
         rooms = None
         try:
             rooms = int(data[2])
@@ -196,9 +195,9 @@ class NyBoligParser(object):
         self.save_dataframe_to_file(ind,self.data_to_df())
 
 def scrape_page(property_type,page_num):
-    # Create a scraper for the given page
+    # Scraper for the page
     scraper = HouseListingsScraper("https://www.nybolig.dk/til-salg", property_type=property_type, page_num=page_num)
-    # Scrape listings data from the page
+    # Scraping the listings data 
     return scraper.parse_listings()
 
 def main():
@@ -232,22 +231,22 @@ class NyboligAnalysis:
             'max': column.max()
         }
         return pd.DataFrame(stats, index=[column_name])
-    #OLS regression
+    # OLS regression
     def OLS(self, X, y):
-        # Add a constant to the independent variables
+        # Adding constant to the independent variables
         X = sm.add_constant(X)
 
-        # Create the OLS model
+        # OLS model
         model = sm.OLS(y, X)
 
-        # Fit the model
+        # Fitting model
         results = model.fit()
 
-        # Print the summary of the results
+        # Printing summary of results
         return results.summary()
 
     def plot_regression(self, X, y):
-        # Fit the OLS model
+        # Fitting OLS model
         model = sm.OLS(y, sm.add_constant(X))
         results = model.fit()
 
@@ -260,23 +259,23 @@ class NyboligAnalysis:
         ax.set_title(f'Regression of {y.name} on {X.columns[0]}')
         plt.show()
     
-    # Remove outliers from the dataset based on the given column and minimum number of observations per city
+    # Removing outliers based on the given column and minimum number of observations per city
     def remove_outliers(self, column_name, min_city_observations, threshold):
-        # Get the counts of observations per city
+        # Counts of observations per city
         city_counts = self.data.groupby('city').size().reset_index(name='counts')
-        # Remove cities with less than min_city_observations observations
+        # Removing cities with less than min_city_observations observations
         cities_to_remove = city_counts[city_counts['counts'] < min_city_observations]['city']
         self.data = self.data[~self.data['city'].isin(cities_to_remove)]
-        # Calculate the z-score of the data
+        # Calculating z-score
         z_scores = (self.data[column_name] - self.data[column_name].mean()) / self.data[column_name].std()
-        # Remove outliers above the threshold
+        # Removing outliers above the threshold
         self.data = self.data[z_scores <= threshold]
 
     def remove_small_cities(self, min_observations=10):
-        # Filter out cities with less than min_observations
+        # Filtering out cities with less than min_observations
         self.data = self.data.groupby('city').filter(lambda x: len(x) >= min_observations)
 
-    #Function to find the minimum and maximum average property prices by city
+    # Function to find the minimum and maximum average property prices by city
     def min_max_city(self, data=None):
         if data is None:
             data = self.data
