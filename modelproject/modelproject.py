@@ -14,12 +14,12 @@ class SolowModelClass:
     def __init__(self, do_print=True):
         """ create the model """
 
-        # if do_print: print('initializing the model:')
+        # If do_print: print('initializing the model:')
         self.par = SimpleNamespace()
         self.val = SimpleNamespace()
         self.sim = SimpleNamespace()
 
-        # if do_print: print('calling .setup()')
+        # If do_print: print('calling .setup()')
         self.setup()
 
     def setup(self):
@@ -29,7 +29,7 @@ class SolowModelClass:
         par = self.par
         sim = self.sim
 
-        # model parameters for analytical solution
+        # Model parameters for analytical solution
         par.k = sm.symbols('k')
         par.alpha = sm.symbols('alpha')
         par.delta = sm.symbols('delta')
@@ -46,7 +46,7 @@ class SolowModelClass:
         par.y_tilde = sm.symbols('y_tilde')
         par.k_tilde_ss = sm.symbols('k_tilde_ss')
 
-        # model parameter values for numerical solution
+        # Model parameter values for numerical solution
         val.s_k = 0.1
         val.g = 0.05
         val.alpha = 0.33
@@ -55,26 +55,26 @@ class SolowModelClass:
         val.l_i = 2
         val.l_m = 1
 
-        # simulation parameters for further analysis
-        par.simT = 100 #number of periods
+        # Simulation parameters for further analysis
+        par.simT = 100 # Number of periods
         sim.K = np.zeros(par.simT)
         sim.L = np.zeros(par.simT)
         sim.A = np.zeros(par.simT)
         sim.Y = np.zeros(par.simT)
-        sim.L = val.l_i + val.l_m  # total labor force
+        sim.L = val.l_i + val.l_m  # Total labor force
 
     def solve_analytical_ss(self):
         """ function that solves the model analytically and returns k_tilde in steady state """
 
         par = self.par
 
-        # set up the steady state equation
+        # Setting up steady state equation
         k_tilde_ss_eq = sm.Eq(par.k_tilde, (1/(1+par.g)) * (par.s_k * par.k_tilde**par.alpha + (1-par.delta) * par.k_tilde))
 
-        # solve the equation for k_tilde
+        # Solving equation for k_tilde
         k_tilde_ss = sm.solve(k_tilde_ss_eq, par.k_tilde)[0]
 
-        # pretty print the solution
+        # Pretty print the solution
         sm.pprint(k_tilde_ss)
 
         return k_tilde_ss
@@ -84,14 +84,14 @@ class SolowModelClass:
 
         par = self.val
 
-        # define the steady state equation
+        # Defining steady state equation
         def steady_state_eq(k_tilde):
             return k_tilde - (1/(1+par.g)) * (par.s_k * k_tilde**par.alpha + (1-par.delta) * k_tilde)
 
-        # make an initial guess for the solution
+        # Initial guess for  solution
         initial_guess = 0.5
 
-        # solve the equation numerically
+        # Solving equation numerically
         k_tilde_ss = optimize.root(steady_state_eq, initial_guess).x[0]
 
         sm.pprint(k_tilde_ss)
