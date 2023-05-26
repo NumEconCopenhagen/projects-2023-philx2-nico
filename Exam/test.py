@@ -107,6 +107,79 @@ class NewLaborEconomicsModelClass:
         # Print the FOC in symbolic form
         print("FOC: ", FOC)
 
+class HairSalonOptimizer:
+    def __init__(self, rho, iota, sigma_epsilon, R, eta, w, K, T):
+        self.rho = rho
+        self.iota = iota
+        self.sigma_epsilon = sigma_epsilon
+        self.R = R
+        self.eta = eta
+        self.w = w
+        self.K = K
+        self.T = T
+        np.random.seed(123)
+        self.epsilon_values = [np.random.normal(loc=-0.5*self.sigma_epsilon**2, scale=self.sigma_epsilon, size=self.T) for _ in range(self.K)]
+    
+    def calculate_l_t(self, kappa_t):
+        return ((1 - self.eta) * kappa_t / self.w) ** (1 / self.eta)
+    
+    def calculate_H(self):
+        total_value = 0
+        for k in range(self.K):
+            epsilon = self.epsilon_values[k]
+            kappa = np.empty(self.T)
+            kappa[0] = np.exp(self.rho*np.log(1) + epsilon[0])
+            l_last = 0
+            l = []
+            for t in range(self.T):
+                if t > 0:
+                    kappa[t] = np.exp(self.rho*np.log(kappa[t-1]) + epsilon[t])
+                l_star = ((1 - self.eta) * kappa[t] / self.w) ** (1 / self.eta)
+                l.append(l_star if abs(l_last - l_star) > 0 else l_last)
+                l_last = l[-1]
+            h = np.sum([(kappa[t]*l[t]**(1-self.eta) - self.w*l[t] - self.iota*(l[t] != l[t-1])) * self.R**(-t) for t in range(self.T)])
+            total_value += h
+        return total_value / self.K
+    
+    def find_optimal_delta(self, delta_values):
+        H_values = []
+        for Delta in delta_values:
+            H_values.append(self.calculate_H_with_policy(Delta))
+        max_H_index = np.argmax(H_values)
+        max_H = H_values[max_H_index]
+        max_Delta = delta_values[max_H_index]
+        return max_Delta, max_H, H_values
+    
+    def calculate_H_with_policy(self, Delta):
+        total_value = 0
+        for k in range(self.K):
+            epsilon = self.epsilon_values[k]
+            kappa = np.empty(self.T)
+            kappa[0] = np.exp(self.rho*np.log(1) + epsilon[0])
+            l_last = 0
+            l = []
+            for t in range(self.T):
+                if t > 0:
+                    kappa[t] = np.exp(self.rho*np.log(kappa[t-1]) + epsilon[t])
+                l_star = ((1 - self.eta) * kappa[t] / self.w) ** (1 / self.eta)
+                if abs(l_last - l_star) > Delta:
+                    l.append(l_star)
+                else:
+                    l.append(l_last)
+                l_last = l[-1]
+            h = np.sum([(kappa[t]*l[t]**(1-self.eta) - self.w*l[t] - self.iota*(l[t] != l[t-1])) * self.R**(-t) for t in range(self.T)])
+            total_value += h
+        return total_value / self.K
+    
+    def plot_H_vs_delta(self, delta_values, H_values, max_Delta, max_H):
+        plt.plot(delta_values, H_values)
+        plt.plot(max_Delta, max_H, 'ro')  # mark the maximum point
+        plt.xlabel('Delta')
+        plt.ylabel('H')
+        plt.title('H vs Delta')
+        plt.grid(True)
+        plt.show()
+
 
 class Griewank:
     def __init__(self):
