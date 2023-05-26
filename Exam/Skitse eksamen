@@ -6,7 +6,6 @@ alpha = 0.5
 kappa = 1.0
 nu = 1/(2*16**2)
 w = 1.0
-tau = 0.3
 parameters_sets = [(1.001, 1.001, 1.0), (1.5, 1.5, 1.0)]
 
 # Define utility function
@@ -21,19 +20,32 @@ def G_condition(G, w, tau, L):
 
 # Iterate over each set of parameters
 for sigma, rho, epsilon in parameters_sets:
-    # Initial guess for G
-    G = 1
-    
-    # First step: solve the worker problem for a given G and tau
-    result = minimize(utility, x0=1, args=(w, tau, G, alpha, kappa, nu, sigma, rho, epsilon), bounds=[(0, 24)])
-    if result.success:
-        L_star = result.x[0]
-        print('Set:', (sigma, rho, epsilon))
-        print('Optimal labor supply L*:', f'{L_star:.2f}')
+    max_utility = -np.inf  # Initialize maximum utility
+    optimal_tau = None  # Initialize optimal tax rate
 
-        # Second step: find the correct G based on the condition
-        result_G = root(G_condition, x0=1, args=(w, tau, L_star))
-        G_star = result_G.x[0]
-        print('Optimal G:', f'{G_star:.2f}')
+    # Grid search over possible tax rates
+    for tau in np.linspace(0, 1, 100):
+        # Initial guess for G
+        G = 1
+        
+        # First step: solve the worker problem for a given tau
+        result_L = minimize(utility, x0=1, args=(w, tau, G, alpha, kappa, nu, sigma, rho, epsilon), bounds=[(0, 24)])
+        if result_L.success:
+            L_star = result_L.x[0]
+
+            # Second step: find the correct G based on the condition
+            result_G = root(G_condition, x0=1, args=(w, tau, L_star))
+            if result_G.success:
+                G_star = result_G.x[0]
+
+                # Compute utility and update maximum utility and optimal tax rate if necessary
+                U = -utility(L_star, w, tau, G_star, alpha, kappa, nu, sigma, rho, epsilon)
+                if U > max_utility:
+                    max_utility = U
+                    optimal_tau = tau
+
+    print('Set:', (sigma, rho, epsilon))
+    print('Optimal tax rate tau*:', f'{optimal_tau:.2f}')
     print()
 
+'
