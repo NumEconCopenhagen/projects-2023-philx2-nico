@@ -22,6 +22,8 @@ def G_condition(G, w, tau, L):
 for sigma, rho, epsilon in parameters_sets:
     max_utility = -np.inf  # Initialize maximum utility
     optimal_tau = None  # Initialize optimal tax rate
+    optimal_L = None  # Initialize optimal labor supply
+    optimal_G = None  # Initialize optimal public good provision
 
     # Grid search over possible tax rates
     for tau in np.linspace(0, 1, 100):
@@ -43,9 +45,11 @@ for sigma, rho, epsilon in parameters_sets:
                 if U > max_utility:
                     max_utility = U
                     optimal_tau = tau
+                    optimal_L = L_star
+                    optimal_G = G_star
 
     print('Set:', (sigma, rho, epsilon))
     print('Optimal tax rate tau*:', f'{optimal_tau:.2f}')
+    print('Optimal labor supply L*:', f'{optimal_L:.2f}')
+    print('Optimal public good provision G*:', f'{optimal_G:.2f}')
     print()
-
-'
