@@ -76,18 +76,18 @@ class RefinedGlobalOptimizer:
     def optimize(self):
         self.x_k0_values.clear()  # clear the list at the start of each call
         x_star = np.array([0, 0])
-        for k in range(self.max_iters):
-            x_k = np.random.uniform(self.bounds[:, 0], bounds[:, 1])
-            if k >= self.warm_up_iters:
+        for k in range(self.max_iters):   # 3.A: Draw random x^k uniformly within chosen bounds
+            x_k = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1])
+            if k >= self.warm_up_iters:         # 3.B, 3.C and 3.D
                 chi_k = 0.50 * 2/(1 + np.exp((k-self.warm_up_iters)/100))
                 x_k0 = chi_k * x_k + (1 - chi_k) * x_star
             else:
                 x_k0 = x_k
             self.x_k0_values.append(x_k0)
-            result = minimize(self.objective_function.evaluate, x_k0, method='BFGS', tol=self.tolerance)
+            result = minimize(self.objective_function.evaluate, x_k0, method='BFGS', tol=self.tolerance) #3.E: optimizer
             x_k_star = result.x
-            if k == 0 or self.objective_function.evaluate(x_k_star) < self.objective_function.evaluate(x_star):
+            if k == 0 or self.objective_function.evaluate(x_k_star) < self.objective_function.evaluate(x_star): #3.F
                 x_star = x_k_star
-            if self.objective_function.evaluate(x_star) < self.tolerance:
+            if self.objective_function.evaluate(x_star) < self.tolerance: #3.G
                 break
         return x_star
